@@ -17,7 +17,7 @@ import {
   ColorSet,
   colors,
   FlowpointInfo,
-} from "./Helpers.js";
+} from "./Helpers";
 
 function reducePositions(
   old: Record<string, FlowpointInfo>,
@@ -201,11 +201,11 @@ const Flowspace: FC<{
   const defs: Record<string, ReactNode> = {};
   connections.forEach((connection) => {
     if (!flowPoints[connection.a] || !flowPoints[connection.b]) {
-      console.warn(
-        "Flowpoints error: Connection without connection no both ends",
-        connection.a,
-        connection.b
-      );
+      //   console.warn(
+      //     "Flowpoints error: Connection without connection no both ends",
+      //     connection.a,
+      //     connection.b
+      //   );
       return;
     }
     const pa = flowPoints[connection.a].position;

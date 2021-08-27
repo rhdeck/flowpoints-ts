@@ -17,7 +17,7 @@ import {
   Output,
   ValidColor,
   Variant,
-} from "./Helpers.js";
+} from "./Helpers";
 import { useFlowspace } from "./Flowspace";
 // Component class
 interface FlowpointProps {
@@ -31,6 +31,7 @@ interface FlowpointProps {
   height?: number;
   startPosition?: { x: number; y: number };
   onClick?: Function;
+  onDragEnd?: Function;
   onDrag?: Function;
   onTouch?: Function;
   onHover?: Function;
@@ -146,11 +147,17 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
   const onMouseUpDrag = useCallback(
     (e: MouseEvent) => {
       setDrag(false);
+      const newPos = {
+        x: dragX ? CalcPos(e.pageX - rel.x, snap.x, minX) : pos.x,
+        y: dragY ? CalcPos(e.pageY - rel.y, snap.y, minY) : pos.y,
+      };
+      setPos(newPos);
+      if (props.onDragEnd) props.onDragEnd(newPos);
       tellFlowspace();
       e.stopPropagation();
       e.preventDefault();
     },
-    [props.onClick]
+    [drag, dragX, rel, snap, minX, dragY, minY, props.onDragEnd]
   );
   const onMouseMove = useCallback(
     (e: MouseEvent) => {
@@ -161,7 +168,7 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
         y: dragY ? CalcPos(e.pageY - rel.y, snap.y, minY) : pos.y,
       };
       setPos(newPos);
-      if (props.onDrag) props.onDrag(pos);
+      if (props.onDrag) props.onDrag(newPos);
       tellFlowspace();
       e.stopPropagation();
       e.preventDefault();
@@ -169,15 +176,18 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
     [drag, dragX, rel, snap, minX, dragY, minY, props.onDrag]
   );
   useEffect(() => {
-    document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("touchmove", onTouchMove);
-    document.removeEventListener("touchend", onTouchEnd);
-    document.removeEventListener("mouseup", onMouseUpDrag);
+    console.log("hit my effect");
+
     if (drag) {
       document.addEventListener("mousemove", onMouseMove);
       document.addEventListener("touchmove", onTouchMove);
       document.addEventListener("touchend", onTouchEnd);
       document.addEventListener("mouseup", onMouseUpDrag);
+    } else {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("mouseup", onMouseUpDrag);
     }
     return () => {
       document.removeEventListener("mousemove", onMouseMove);
@@ -185,7 +195,7 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
       document.removeEventListener("touchend", onTouchEnd);
       document.removeEventListener("mouseup", onMouseUpDrag);
     };
-  }, [drag, onMouseMove, onTouchMove, onTouchEnd, onMouseUpDrag]);
+  }, [drag]);
   const tellFlowspace = useCallback(() => {
     updateFlowpoint(
       id,
