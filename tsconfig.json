@@ -12,7 +12,9 @@
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "noEmitOnError": true
+    "noEmitOnError": true,
+    "jsx": "react",
+    "lib": ["es5", "es2015.promise", "dom", "es2015"]
   },
 
   "include": ["./src/"]
