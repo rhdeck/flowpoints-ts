@@ -17,6 +17,7 @@ import {
   ColorSet,
   colors,
   FlowpointInfo,
+  Position,
 } from "./Helpers";
 
 function reducePositions(
@@ -95,6 +96,7 @@ const Flowspace: FC<{
   arrowEnd?: boolean;
   selectedLine?: { a: string; b: string };
   onLineClick?: (key_a: string, key_b: string) => void;
+  onDragEnd?: (key: string, pos: Position) => void;
 }> = (props) => {
   const { children } = props;
 
@@ -105,6 +107,11 @@ const Flowspace: FC<{
   const updateFlowpoint: UpdateFlowpoint = useCallback(
     (key: string, value: FlowpointInfo) => {
       updatePositions({ key, value, action: "UPDATE" });
+      switch (value.event) {
+        case "dragEnd": {
+          if (props.onDragEnd) props.onDragEnd(key, value.position);
+        }
+      }
     },
     [updatePositions]
   );

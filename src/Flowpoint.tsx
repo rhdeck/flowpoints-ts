@@ -47,7 +47,9 @@ const usePropState = function <T>(
   basis: T | undefined,
   reference: MutableRefObject<boolean>
 ): [T, React.Dispatch<React.SetStateAction<T>>] {
-  const [value, setValue] = useState(def);
+  const [value, setValue] = useState(
+    typeof basis === "undefined" ? def : basis
+  );
   useEffect(() => {
     if (basis !== undefined && value !== basis) {
       setValue(basis);
@@ -138,7 +140,7 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
     (e: ReactMouseEvent) => {
       if (!didDragRef.current && props.onClick) props.onClick(e);
       setDrag(false);
-      tellFlowspace();
+      // tellFlowspace();
       e.stopPropagation();
       e.preventDefault();
     },
@@ -146,18 +148,21 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
   );
   const onMouseUpDrag = useCallback(
     (e: MouseEvent) => {
-      setDrag(false);
-      const newPos = {
-        x: dragX ? CalcPos(e.pageX - rel.x, snap.x, minX) : pos.x,
-        y: dragY ? CalcPos(e.pageY - rel.y, snap.y, minY) : pos.y,
-      };
-      setPos(newPos);
-      if (props.onDragEnd) props.onDragEnd(newPos);
-      tellFlowspace();
+      if (didDragRef.current) {
+        setDrag(false);
+        const newPos = {
+          x: dragX ? CalcPos(e.pageX - rel.x, snap.x, minX) : pos.x,
+          y: dragY ? CalcPos(e.pageY - rel.y, snap.y, minY) : pos.y,
+        };
+        setPos(newPos);
+        if (props.onDragEnd) props.onDragEnd(newPos);
+
+        tellFlowspace(newPos);
+      }
       e.stopPropagation();
       e.preventDefault();
     },
-    [drag, dragX, rel, snap, minX, dragY, minY, props.onDragEnd]
+    [dragX, rel, snap, minX, dragY, minY, props.onDragEnd]
   );
   const onMouseMove = useCallback(
     (e: MouseEvent) => {
@@ -169,15 +174,13 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
       };
       setPos(newPos);
       if (props.onDrag) props.onDrag(newPos);
-      tellFlowspace();
+      tellFlowspace(newPos);
       e.stopPropagation();
       e.preventDefault();
     },
     [drag, dragX, rel, snap, minX, dragY, minY, props.onDrag]
   );
   useEffect(() => {
-    console.log("hit my effect");
-
     if (drag) {
       document.addEventListener("mousemove", onMouseMove);
       document.addEventListener("touchmove", onTouchMove);
@@ -196,23 +199,27 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
       document.removeEventListener("mouseup", onMouseUpDrag);
     };
   }, [drag]);
-  const tellFlowspace = useCallback(() => {
-    updateFlowpoint(
-      id,
+  const tellFlowspace = useCallback(
+    (newPos?: { x: number; y: number }) => {
+      const p = newPos ? newPos : pos;
+      updateFlowpoint(
+        id,
 
-      {
-        position: {
-          x: pos.x,
-          y: pos.y,
-          width,
-          height,
-          offsetX: 0,
-          offsetY: 0,
-        },
-        outputs: props.outputs,
-      }
-    );
-  }, [pos, width, height, id, updateFlowpoint]);
+        {
+          position: {
+            x: p.x,
+            y: p.y,
+            width,
+            height,
+            offsetX: 0,
+            offsetY: 0,
+          },
+          outputs: props.outputs,
+        }
+      );
+    },
+    [pos, width, height, id, updateFlowpoint]
+  );
   useEffect(() => {
     if (doTellFlowspace.current) {
       tellFlowspace();
@@ -313,8 +320,12 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
         onTouchStart(e);
       }}
       onClick={(e) => {
-        console.log("clicked", e);
-        onMouseUp(e);
+        if (didDragRef.current === false) {
+          onMouseUp(e);
+        }
+        didDragRef.current = false;
+        // e.preventDefault();
+        // e.stopPropagation();
       }}
     >
       {children}

@@ -26,6 +26,7 @@ export type Output = {
 export type FlowpointInfo = {
   position: Position;
   outputs: Record<string, Output>;
+  event?: string;
 };
 export type Variant = "paper" | "outlined" | "filled";
 export function CalcPos(pos: number, snap: number, minimum: number): number {
