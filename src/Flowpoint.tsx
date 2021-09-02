@@ -59,7 +59,8 @@ const usePropState = function <T>(
   return [value, setValue];
 };
 const Flowpoint: FC<FlowpointProps> = (props) => {
-  const { updateFlowpoint, deleteFlowpoint, ...flowSpace } = useFlowspace();
+  const { updateFlowpoint, deleteFlowpoint, scale, ...flowSpace } =
+    useFlowspace();
   const { id, children } = props;
   const doTellFlowspace = useRef(true);
   const useDT = function <T>(def: T, basis: T | undefined) {
@@ -76,6 +77,7 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
   const [drag, setDrag] = useState(false);
   const [rel, setRel] = useState({ x: 0, y: 0 });
   const didDragRef = useRef(false);
+
   const onTouchStart = useCallback(
     (e: ReactTouchEvent) => {
       if ((e?.target as Element)?.className.includes("nodrag")) return;
@@ -83,13 +85,13 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
 
       setDrag(true);
       setRel({
-        x: e.touches[0].pageX - pos.x,
-        y: e.touches[0].pageY - pos.y,
+        x: e.touches[0].pageX / scale - pos.x,
+        y: e.touches[0].pageY / scale - pos.y,
       });
       e.preventDefault();
       e.stopPropagation();
     },
-    [pos]
+    [pos, scale]
   );
   const onTouchEnd = useCallback(
     (e: TouchEvent) => {
@@ -109,14 +111,18 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
       if (!drag) return;
       didDragRef.current = true;
       setPos({
-        x: dragX ? CalcPos(e.touches[0].pageX - rel.x, snap.x, minX) : pos.x,
-        y: dragY ? CalcPos(e.touches[0].pageY - rel.y, snap.y, minY) : pos.y,
+        x: dragX
+          ? CalcPos(e.touches[0].pageX / scale - rel.x, snap.x, minX)
+          : pos.x,
+        y: dragY
+          ? CalcPos(e.touches[0].pageY / scale - rel.y, snap.y, minY)
+          : pos.y,
       });
       if (props.onDrag) props.onDrag(e);
       e.stopPropagation();
       e.preventDefault();
     },
-    [props.onDrag, snap, minX, minY, dragX, dragY]
+    [props.onDrag, snap, minX, minY, dragX, dragY, scale, rel, pos, drag]
   );
   const onMouseOver = useCallback(() => {
     if (props.onHover) props.onHover(true);
@@ -130,11 +136,11 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
       if ((e.target as Element).className.includes("nodrag")) return;
       didDragRef.current = false;
       setDrag(true);
-      setRel({ x: e.pageX - pos.x, y: e.pageY - pos.y });
+      setRel({ x: e.pageX / scale - pos.x, y: e.pageY / scale - pos.y });
       e.stopPropagation();
       e.preventDefault();
     },
-    [pos]
+    [pos, scale]
   );
   const onMouseUp = useCallback(
     (e: ReactMouseEvent) => {
@@ -151,8 +157,8 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
       if (didDragRef.current) {
         setDrag(false);
         const newPos = {
-          x: dragX ? CalcPos(e.pageX - rel.x, snap.x, minX) : pos.x,
-          y: dragY ? CalcPos(e.pageY - rel.y, snap.y, minY) : pos.y,
+          x: dragX ? CalcPos(e.pageX / scale - rel.x, snap.x, minX) : pos.x,
+          y: dragY ? CalcPos(e.pageY / scale - rel.y, snap.y, minY) : pos.y,
         };
         setPos(newPos);
         if (props.onDragEnd) props.onDragEnd(newPos);
@@ -162,23 +168,33 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
       e.stopPropagation();
       e.preventDefault();
     },
-    [dragX, rel, snap, minX, dragY, minY, props.onDragEnd]
+    [dragX, rel, snap, minX, dragY, minY, props.onDragEnd, scale]
   );
   const onMouseMove = useCallback(
     (e: MouseEvent) => {
       if (!drag) return;
       didDragRef.current = true;
+      console.log("scale is", scale);
       const newPos = {
-        x: dragX ? CalcPos(e.pageX - rel.x, snap.x, minX) : pos.x,
-        y: dragY ? CalcPos(e.pageY - rel.y, snap.y, minY) : pos.y,
+        x: dragX
+          ? CalcPos(e.pageX / scale - rel.x, snap.x * scale, minX)
+          : pos.x,
+        y: dragY
+          ? CalcPos(e.pageY / scale - rel.y, snap.y * scale, minY)
+          : pos.y,
       };
+      console.log(
+        "Pos is ",
+        JSON.stringify(newPos),
+        JSON.stringify(props.startPosition)
+      );
       setPos(newPos);
       if (props.onDrag) props.onDrag(newPos);
       tellFlowspace(newPos);
       e.stopPropagation();
       e.preventDefault();
     },
-    [drag, dragX, rel, snap, minX, dragY, minY, props.onDrag]
+    [drag, dragX, rel, snap, minX, dragY, minY, props.onDrag, scale]
   );
   useEffect(() => {
     if (drag) {
@@ -239,8 +255,8 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
   const style: {
     width: number;
     height: number;
-    left: string;
-    top: string;
+    // left: string;
+    // top: string;
     position: "absolute" | "relative" | "fixed";
     transition: string;
     backgroundColor: string;
@@ -255,8 +271,8 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
   } = {
     width,
     height,
-    left: pos.x + "px",
-    top: pos.y + "px",
+    // left: pos.x + "px",
+    // top: pos.y + "px",
     position: "absolute",
     transition: [
       "border-color 0.4s ease-out",
@@ -303,33 +319,35 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
   // Returning finished Flowpoint
   const finalStyle = { ...style, ...(props.style || {}) };
   return (
-    <div
-      className="flowpoint"
-      key={id}
-      style={finalStyle}
-      onMouseOver={() => {
-        onMouseOver();
-      }}
-      onMouseOut={() => {
-        onMouseOut();
-      }}
-      onMouseDown={(e) => {
-        onMouseDown(e);
-      }}
-      onTouchStart={(e) => {
-        onTouchStart(e);
-      }}
-      onClick={(e) => {
-        if (didDragRef.current === false) {
-          onMouseUp(e);
-        }
-        didDragRef.current = false;
-        // e.preventDefault();
-        // e.stopPropagation();
-      }}
-    >
-      {children}
-    </div>
+    <foreignObject x={pos.x} y={pos.y} height={height} width={width}>
+      <div
+        className="flowpoint"
+        key={id}
+        style={finalStyle}
+        onMouseOver={() => {
+          onMouseOver();
+        }}
+        onMouseOut={() => {
+          onMouseOut();
+        }}
+        onMouseDown={(e) => {
+          onMouseDown(e);
+        }}
+        onTouchStart={(e) => {
+          onTouchStart(e);
+        }}
+        onClick={(e) => {
+          if (didDragRef.current === false) {
+            onMouseUp(e);
+          }
+          didDragRef.current = false;
+          // e.preventDefault();
+          // e.stopPropagation();
+        }}
+      >
+        {children}
+      </div>
+    </foreignObject>
   );
 };
 export default Flowpoint;

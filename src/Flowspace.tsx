@@ -8,6 +8,7 @@ import React, {
   useMemo,
   MouseEvent as ReactMouseEvent,
   ReactNode,
+  useEffect,
 } from "react";
 import {
   getColor,
@@ -43,6 +44,7 @@ const context = createContext<{
   spaceColor: ColorSet;
   variant: Variant;
   theme: ValidColor;
+  scale: number;
 }>({
   updateFlowpoint: () => {
     return;
@@ -54,6 +56,7 @@ const context = createContext<{
   spaceColor: colors.red,
   variant: "paper",
   theme: "indigo",
+  scale: 1.0,
 });
 export function useFlowspace(): {
   updateFlowpoint: UpdateFlowpoint;
@@ -62,6 +65,7 @@ export function useFlowspace(): {
   spaceColor: ColorSet;
   variant: Variant;
   theme: ValidColor;
+  scale: number;
 } {
   const {
     updateFlowpoint,
@@ -70,6 +74,7 @@ export function useFlowspace(): {
     spaceColor,
     variant,
     theme,
+    scale,
   } = useContext(context);
   return {
     updateFlowpoint,
@@ -78,6 +83,7 @@ export function useFlowspace(): {
     spaceColor,
     variant,
     theme,
+    scale,
   };
 }
 const { Provider } = context;
@@ -97,9 +103,14 @@ const Flowspace: FC<{
   selectedLine?: { a: string; b: string };
   onLineClick?: (key_a: string, key_b: string) => void;
   onDragEnd?: (key: string, pos: Position) => void;
+  scale?: number;
+  offsetX?: number;
+  offsetY?: number;
 }> = (props) => {
-  const { children } = props;
-
+  const { children, scale = 1, offsetX = 0, offsetY = 0 } = props;
+  useEffect(() => {
+    console.log("flowspace scale is ", scale);
+  }, [scale]);
   const theme_colors = getColor(props.theme || "indigo");
   const background_color = getColor(props.background || "white");
 
@@ -129,6 +140,7 @@ const Flowspace: FC<{
       variant: props.variant || "paper",
       theme: props.theme || "indigo",
       selected: props.selected || [],
+      scale: props.scale || 1,
     }),
     [
       updateFlowpoint,
@@ -137,6 +149,7 @@ const Flowspace: FC<{
       props.variant,
       props.theme,
       props.selected,
+      props.scale,
     ]
   );
   const handleFlowspaceClick = useCallback(
@@ -242,7 +255,21 @@ const Flowspace: FC<{
         : props.arrowEnd !== undefined
         ? props.arrowEnd
         : false;
-
+    defs["background"] = (
+      <pattern
+        id="bg"
+        patternUnits="userSpaceOnUse"
+        height={20 * scale}
+        width={20 * scale}
+      >
+        <circle
+          cx={(scale * 10).toFixed(2)}
+          cy={(scale * 10).toFixed(2)}
+          r={scale.toFixed(2)}
+          fill="green"
+        />
+      </pattern>
+    );
     if (markerStart)
       defs[connection.outputColor] = (
         <marker
@@ -408,8 +435,10 @@ const Flowspace: FC<{
       >
         <div
           style={{
-            width: maxX,
-            height: maxY,
+            // width: maxX,
+            // height: maxY,
+            height: "100%",
+            width: "100%",
             position: "relative",
             overflow: "visible",
           }}
@@ -435,11 +464,17 @@ const Flowspace: FC<{
               className="flowconnections"
             >
               <defs>{Object.values(defs)}</defs>
-              {gradients}
-              {paths}
-            </svg>
 
-            {children}
+              <rect height="100%" width="100%" fill="url(#bg)"></rect>
+              <g
+                transform={` translate(${offsetX}, ${offsetY}), scale(${scale})`}
+                // transform="translate(785.2676132180397,317.0503679935596) scale(1.010352888288932)"
+              >
+                {gradients}
+                {paths}
+                {children}
+              </g>
+            </svg>
           </div>
         </div>
       </div>
