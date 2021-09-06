@@ -41,6 +41,8 @@ interface FlowpointProps {
   selected?: boolean;
   style?: Record<string, string>;
   outputs: Record<string, Output>;
+  wrapperWidth?: number;
+  wrapperHeight?: number;
 }
 const usePropState = function <T>(
   def: T,
@@ -59,9 +61,14 @@ const usePropState = function <T>(
   return [value, setValue];
 };
 const Flowpoint: FC<FlowpointProps> = (props) => {
-  const { updateFlowpoint, deleteFlowpoint, scale, ...flowSpace } =
-    useFlowspace();
-  const { id, children } = props;
+  const {
+    updateFlowpoint,
+    deleteFlowpoint,
+    scale,
+
+    ...flowSpace
+  } = useFlowspace();
+  const { id, children, wrapperWidth, wrapperHeight } = props;
   const doTellFlowspace = useRef(true);
   const useDT = function <T>(def: T, basis: T | undefined) {
     return usePropState(def, basis, doTellFlowspace);
@@ -174,7 +181,6 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
     (e: MouseEvent) => {
       if (!drag) return;
       didDragRef.current = true;
-      console.log("scale is", scale);
       const newPos = {
         x: dragX
           ? CalcPos(e.pageX / scale - rel.x, snap.x * scale, minX)
@@ -183,11 +189,6 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
           ? CalcPos(e.pageY / scale - rel.y, snap.y * scale, minY)
           : pos.y,
       };
-      console.log(
-        "Pos is ",
-        JSON.stringify(newPos),
-        JSON.stringify(props.startPosition)
-      );
       setPos(newPos);
       if (props.onDrag) props.onDrag(newPos);
       tellFlowspace(newPos);
@@ -319,7 +320,12 @@ const Flowpoint: FC<FlowpointProps> = (props) => {
   // Returning finished Flowpoint
   const finalStyle = { ...style, ...(props.style || {}) };
   return (
-    <foreignObject x={pos.x} y={pos.y} height={height} width={width}>
+    <foreignObject
+      x={pos.x}
+      y={pos.y}
+      height={wrapperHeight || height + 2}
+      width={wrapperWidth || width + 2}
+    >
       <div
         className="flowpoint"
         key={id}
