@@ -106,10 +106,23 @@ const Flowspace: FC<{
   scale?: number;
   offsetX?: number;
   offsetY?: number;
+  gridX?: number;
+  gridY?: number;
+  dotColor?: string;
+  dotSize?: number;
 }> = (props) => {
-  const { children, scale = 1, offsetX = 0, offsetY = 0 } = props;
+  const {
+    children,
+    scale = 1,
+    offsetX = 0,
+    offsetY = 0,
+    gridX = 20,
+    gridY = 20,
+    dotColor = "red",
+    dotSize = 10,
+  } = props;
   useEffect(() => {
-    console.log("flowspace scale is ", scale);
+    console.log("Hi there this is scale for me", scale);
   }, [scale]);
   const theme_colors = getColor(props.theme || "indigo");
   const background_color = getColor(props.background || "white");
@@ -193,13 +206,10 @@ const Flowspace: FC<{
             ? output.dash
             : undefined,
         onClick: (e: ReactMouseEvent) => {
-          console.log("Starting line onclick", pointKey, out_key);
           if (output.onClick) {
-            console.log("triggering output onClick");
             output.onClick(pointKey, out_key, e);
           }
           if (props.onLineClick) {
-            console.log("triggering onLineClick");
             props.onLineClick(pointKey, out_key);
           }
         },
@@ -219,6 +229,21 @@ const Flowspace: FC<{
   const paths: ReactNode[] = [];
   const gradients: ReactNode[] = [];
   const defs: Record<string, ReactNode> = {};
+  defs["background"] = (
+    <pattern
+      id="bg"
+      patternUnits="userSpaceOnUse"
+      height={gridY * scale}
+      width={gridX * scale}
+    >
+      <circle
+        cx={((scale * gridX) / 2).toFixed(2)}
+        cy={((scale * gridY) / 2).toFixed(2)}
+        r={(scale * dotSize).toFixed(2)}
+        fill={dotColor}
+      />
+    </pattern>
+  );
   connections.forEach((connection) => {
     if (!flowPoints[connection.a] || !flowPoints[connection.b]) {
       //   console.warn(
@@ -255,21 +280,7 @@ const Flowspace: FC<{
         : props.arrowEnd !== undefined
         ? props.arrowEnd
         : false;
-    defs["background"] = (
-      <pattern
-        id="bg"
-        patternUnits="userSpaceOnUse"
-        height={20 * scale}
-        width={20 * scale}
-      >
-        <circle
-          cx={(scale * 10).toFixed(2)}
-          cy={(scale * 10).toFixed(2)}
-          r={scale.toFixed(2)}
-          fill="green"
-        />
-      </pattern>
-    );
+
     if (markerStart)
       defs[connection.outputColor] = (
         <marker
