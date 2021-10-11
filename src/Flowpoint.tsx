@@ -30,7 +30,7 @@ interface FlowpointProps {
   width?: number;
   height?: number;
   startPosition?: { x: number; y: number };
-  onClick?: Function;
+  onClick?: (event: ReactMouseEvent<Element, MouseEvent>) => void;
   onDragEnd?: Function;
   onDrag?: Function;
   onTouch?: Function;
